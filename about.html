@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en" data-section="about">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>About · Raj Vora</title>
+    <meta name="description" content="Hiking, pickleball and LEGO building." />
+    <meta name="theme-color" content="#1f7a3e" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <style>@media (prefers-reduced-motion: no-preference) { @view-transition { navigation: auto; } }</style>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="site-nav">
+      <a class="wordmark" href="/" aria-label="Raj Vora, home"><svg class="wordmark-icon" viewBox="0 0 32 20" width="26" height="16" aria-hidden="true"><rect x="1" y="6" width="30" height="13" rx="1.5" fill="currentColor"/><rect x="5" y="1" width="8" height="5" rx="1" fill="currentColor"/><rect x="19" y="1" width="8" height="5" rx="1" fill="currentColor"/></svg><span>Raj Vora</span></a>
+      <nav aria-label="Sections">
+        <a href="/experience.html">Experience</a>
+        <a href="/projects.html">Projects</a>
+        <a href="/about.html" aria-current="page">About</a>
+        <a href="/contact.html">Contact</a>
+      </nav>
+    </header>
+
+
+    <main id="main">
+      <section class="page-hero about">
+        <div class="page-hero-text">
+          <h1>Beyond the Bricks</h1>
+        </div>
+        <canvas class="hero-model" data-model="mountain" aria-hidden="true"></canvas>
+      </section>
+
+      <section class="about-body" aria-label="Interests">
+        <div class="interests">
+          <div class="tabs" role="tablist" aria-label="Interests">
+            <button role="tab" id="tab-hiking" aria-selected="true" aria-controls="panel-hiking" data-shape="mountain">Hiking</button>
+            <button role="tab" id="tab-pickleball" aria-selected="false" aria-controls="panel-pickleball" tabindex="-1" data-shape="paddle">Pickleball</button>
+            <button role="tab" id="tab-lego" aria-selected="false" aria-controls="panel-lego" tabindex="-1" data-shape="house">LEGO building</button>
+          </div>
+          <div role="tabpanel" id="panel-hiking" aria-labelledby="tab-hiking" tabindex="0">
+            <p>
+              I love exploring new trails, especially ones with challenging climbs and rewarding views. Some of my
+              favorite hikes have been Yosemite’s Mist Trail, Mount Tammany in New Jersey, and trails around Mount
+              Rainier. I’m always looking for my next adventure.
+            </p>
+            <figure class="photo" data-photo="/photos/hiking.jpg" data-alt="On the trail" hidden></figure>
+          </div>
+          <div role="tabpanel" id="panel-pickleball" aria-labelledby="tab-pickleball" tabindex="0" hidden>
+            <p>
+              Pickleball is one of my favorite ways to stay active, compete, and spend time with friends. I love how a
+              casual game can turn into a surprisingly intense match.
+            </p>
+            <figure class="photo" data-photo="/photos/pickleball.jpg" data-alt="Playing pickleball" hidden></figure>
+          </div>
+          <div role="tabpanel" id="panel-lego" aria-labelledby="tab-lego" tabindex="0" hidden>
+            <p>
+              I’ve loved building with LEGO for years, from following detailed sets to experimenting with my own
+              creations. That interest even inspired <a href="/projects.html#brickmatch">BrickMatch</a>, a computer vision project
+              I’m developing to identify loose LEGO pieces and recommend things you can build with them.
+            </p>
+            <figure class="photo" data-photo="/photos/lego.jpg" data-alt="One of my favorite builds" hidden></figure>
+          </div>
+        </div>
+      </section>
+
+      <footer class="next">
+        <a href="/contact.html" data-section="contact">
+          <span class="next-title">Next: Have an idea? Let’s build it.</span>
+        </a>
+      </footer>
+    </main>
+
+    <script type="module" src="/src/page.ts"></script>
+  </body>
+</html>

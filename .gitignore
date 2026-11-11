@@ -1,0 +1,6 @@
+node_modules
+dist
+.DS_Store
+# Local design-tool files, not part of the site
+.claude/
+.impeccable/

@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en" data-section="projects">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Projects · Raj Vora</title>
+    <meta name="description" content="BrickMatch, a computer-vision system for LEGO piles, and ARGOS, research on an Intelligent Tutoring System." />
+    <meta name="theme-color" content="#1f7a3e" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <style>@media (prefers-reduced-motion: no-preference) { @view-transition { navigation: auto; } }</style>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="site-nav">
+      <a class="wordmark" href="/" aria-label="Raj Vora, home"><svg class="wordmark-icon" viewBox="0 0 32 20" width="26" height="16" aria-hidden="true"><rect x="1" y="6" width="30" height="13" rx="1.5" fill="currentColor"/><rect x="5" y="1" width="8" height="5" rx="1" fill="currentColor"/><rect x="19" y="1" width="8" height="5" rx="1" fill="currentColor"/></svg><span>Raj Vora</span></a>
+      <nav aria-label="Sections">
+        <a href="/experience.html">Experience</a>
+        <a href="/projects.html" aria-current="page">Projects</a>
+        <a href="/about.html">About</a>
+        <a href="/contact.html">Contact</a>
+      </nav>
+    </header>
+
+
+    <main id="main">
+      <section class="page-hero">
+        <div class="page-hero-text">
+          <h1>Things I’ve Built</h1>
+          <p>A computer-vision system for piles of bricks, and research on whether an AI tutor actually helps.</p>
+        </div>
+        <canvas class="hero-model" data-model="computer" aria-hidden="true"></canvas>
+      </section>
+
+      <section class="projects" aria-label="Projects">
+        <article id="brickmatch" class="project" aria-labelledby="brickmatch-title">
+          <h2 id="brickmatch-title">BrickMatch</h2>
+          <p class="label-medium">Python, PyTorch, YOLO, ResNet-18</p>
+          <p class="project-lede">
+            Photograph a pile of LEGO and BrickMatch tells you what’s in it, and what you can build with it.
+          </p>
+          <ol class="pipeline">
+            <li>
+              <h3>Detect</h3>
+              <p>YOLO finds each piece in the pile: <strong>90% recall</strong>.</p>
+            </li>
+            <li>
+              <h3>Classify</h3>
+              <p>ResNet-18 names the piece and its color, across 8 colors: <strong>85% accuracy</strong>.</p>
+            </li>
+            <li>
+              <h3>Count</h3>
+              <p>Every detection becomes an inventory, by piece type.</p>
+            </li>
+            <li>
+              <h3>Recommend</h3>
+              <p>Ranks 10+ builds by how much of each your pile covers, suggests compatible swaps, and lists what’s missing.</p>
+            </li>
+          </ol>
+          <p class="note">
+            I built and labeled the dataset myself, across different lighting and crowding, and split it by physical
+            pile so no pile shows up in both training and test.
+          </p>
+          <figure class="photo" data-photo="/photos/brickmatch.png" data-alt="BrickMatch detecting pieces in a pile" hidden></figure>
+          <p><a class="cta" href="https://github.com/RajVora1/brickmatch" rel="noopener">BrickMatch on GitHub</a></p>
+        </article>
+
+        <article id="argos" class="project" aria-labelledby="argos-title">
+          <h2 id="argos-title">ARGOS</h2>
+          <p class="label-medium">Research at George Mason University, 2025</p>
+          <p class="project-lede">
+            An Intelligent Tutoring System that works out what a student understands and gives real-time, personalized
+            guidance. My part was measuring whether it works.
+          </p>
+
+          <div class="diagram" role="group" aria-label="How ARGOS was evaluated">
+            <div class="track">
+              <p class="track-name">Does it help students?</p>
+              <ol class="nodes">
+                <li>Pre-assessment</li>
+                <li>Tutoring with ARGOS</li>
+                <li>Post-assessment</li>
+                <li class="result"><strong>+65%</strong> average math performance, 50+ students</li>
+              </ol>
+            </div>
+            <div class="track">
+              <p class="track-name">Is it a good tutor?</p>
+              <ol class="nodes">
+                <li>Tutor responses in 8 scenarios</li>
+                <li>Scored on my 30-point rubric</li>
+                <li>Compared with 4 human evaluators</li>
+                <li class="result"><strong>r = 0.837</strong> agreement with humans</li>
+              </ol>
+            </div>
+            <p class="diagram-foot">
+              The rubric scores tutoring quality, factual accuracy, instructional adherence and mastery-score
+              reliability.
+            </p>
+          </div>
+          <p class="note">Presented with 3 peers at the 2025 MIT Undergraduate Research Technology Conference.</p>
+        </article>
+      </section>
+
+      <footer class="next">
+        <a href="/about.html" data-section="about">
+          <span class="next-title">Next: Beyond the Bricks</span>
+        </a>
+      </footer>
+    </main>
+
+    <script type="module" src="/src/page.ts"></script>
+  </body>
+</html>

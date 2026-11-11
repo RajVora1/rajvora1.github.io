@@ -7,6 +7,7 @@
     <meta name="description" content="Hiking, pickleball and LEGO building." />
     <meta name="theme-color" content="#1f7a3e" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <script>document.documentElement.classList.add('brick-title-on')</script>
     <style>@media (prefers-reduced-motion: no-preference) { @view-transition { navigation: auto; } }</style>
   </head>
   <body>
@@ -26,16 +27,16 @@
       <section class="page-hero about">
         <div class="page-hero-text">
           <h1>Beyond the Bricks</h1>
+          <canvas class="brick-title" aria-hidden="true"></canvas>
         </div>
-        <canvas class="hero-model" data-model="mountain" aria-hidden="true"></canvas>
       </section>
 
       <section class="about-body" aria-label="Interests">
         <div class="interests">
           <div class="tabs" role="tablist" aria-label="Interests">
-            <button role="tab" id="tab-hiking" aria-selected="true" aria-controls="panel-hiking" data-shape="mountain">Hiking</button>
-            <button role="tab" id="tab-pickleball" aria-selected="false" aria-controls="panel-pickleball" tabindex="-1" data-shape="paddle">Pickleball</button>
-            <button role="tab" id="tab-lego" aria-selected="false" aria-controls="panel-lego" tabindex="-1" data-shape="house">LEGO building</button>
+            <button role="tab" id="tab-hiking" aria-selected="true" aria-controls="panel-hiking">Hiking</button>
+            <button role="tab" id="tab-pickleball" aria-selected="false" aria-controls="panel-pickleball" tabindex="-1">Pickleball</button>
+            <button role="tab" id="tab-lego" aria-selected="false" aria-controls="panel-lego" tabindex="-1">LEGO building</button>
           </div>
           <div role="tabpanel" id="panel-hiking" aria-labelledby="tab-hiking" tabindex="0">
             <p>

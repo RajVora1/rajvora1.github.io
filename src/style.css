@@ -155,7 +155,7 @@ a:hover {
 }
 
 .no-webgl .chameleon,
-.no-webgl .hero-model {
+.no-webgl .brick-title {
   display: none;
 }
 
@@ -296,12 +296,7 @@ main#main > * {
 }
 
 .page-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-  align-items: center;
-  gap: 2rem;
-  min-height: min(78svh, 46rem);
-  padding: calc(var(--nav-h) + 2rem) 0 2.5rem;
+  padding: calc(var(--nav-h) + 3rem) 0 3rem;
   border-bottom: 1px solid var(--hair);
 }
 
@@ -319,10 +314,22 @@ main#main > * {
   font-size: 1.25rem;
 }
 
-.hero-model {
+.brick-title {
   display: block;
   width: 100%;
-  height: clamp(320px, 52svh, 520px);
+  aspect-ratio: 8 / 1;
+  /* Optical alignment: the first brick sits on the text edge. */
+  margin-left: -0.6%;
+}
+
+/* The bricks spell the title; the heading stays for screen readers and search. */
+.brick-title-on:not(.no-webgl) .page-hero h1 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 /* Experience entries */
@@ -647,14 +654,7 @@ main#main > * {
   }
 
   .page-hero {
-    grid-template-columns: 1fr;
-    min-height: auto;
-    gap: 0.5rem;
-    padding: calc(var(--mnav) + 2rem) 0 1.5rem;
-  }
-
-  .hero-model {
-    height: 280px;
+    padding: calc(var(--mnav) + 2rem) 0 2rem;
   }
 
   .label {

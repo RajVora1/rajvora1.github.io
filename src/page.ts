@@ -2,29 +2,35 @@ import '@fontsource/young-serif/400.css';
 import '@fontsource-variable/source-serif-4/opsz.css';
 import '@fontsource-variable/source-serif-4/opsz-italic.css';
 import './style.css';
-import * as THREE from 'three';
-import { shapeFor, type ShapeName } from './shapes';
-import { ACCENT } from './theme';
 
 const root = document.documentElement;
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-const canvas = document.querySelector<HTMLCanvasElement>('.hero-model');
+const canvas = document.querySelector<HTMLCanvasElement>('.brick-title');
+const heading = document.querySelector<HTMLHeadingElement>('.page-hero h1');
 
-let model: import('./model').HeroModel | null = null;
+/** The page title, split at its forced line breaks. */
+function titleSegments(h: HTMLElement) {
+  const segs = [''];
+  for (const node of h.childNodes) {
+    if (node.nodeName === 'BR') segs.push('');
+    else segs[segs.length - 1] += node.textContent ?? '';
+  }
+  return segs.map((s) => s.trim()).filter(Boolean);
+}
 
 async function start() {
-  if (!canvas) return;
+  if (!canvas || !heading) return;
   try {
-    const { HeroModel } = await import('./model');
-    model = new HeroModel(canvas, reduced, new THREE.Color(ACCENT));
-    model.show(shapeFor(canvas.dataset.model as ShapeName, 5));
+    const { BrickTitle } = await import('./brickTitle');
+    new BrickTitle(canvas, titleSegments(heading), reduced);
+    root.classList.add('brick-title-on');
   } catch (err) {
-    console.warn('WebGL unavailable; showing the text-only page.', err);
+    console.warn('WebGL unavailable; showing the text title.', err);
     root.classList.add('no-webgl');
   }
 }
 
-// Interest tabs: arrow keys move between them; selection swaps the model.
+// Interest tabs: arrow keys move between them.
 const tabs = Array.from(document.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
 function select(tab: HTMLButtonElement, focus = false) {
   for (const t of tabs) {
@@ -34,7 +40,6 @@ function select(tab: HTMLButtonElement, focus = false) {
     document.getElementById(t.getAttribute('aria-controls')!)!.hidden = !on;
   }
   if (focus) tab.focus();
-  model?.show(shapeFor(tab.dataset.shape as ShapeName));
 }
 tabs.forEach((tab, i) => {
   tab.addEventListener('click', () => select(tab));

@@ -14,8 +14,14 @@ const PIXEL_PX = 16;
 const MAX_LEN = 4;
 const CAPACITY = 1024;
 
-/** Two colors, alternating by letter: the site's white and its yellow. */
-const PALETTE = ['#f7f7f4', '#f5c518'];
+/** One color: the site's white, warmed slightly so it reads as plastic. */
+const BRICK = new THREE.Color('#f6f4ee');
+
+/** Small deterministic noise, so every load lays the same wall. */
+const jitter = (i: number) => {
+  const x = Math.sin(i * 12.9898) * 43758.5453;
+  return x - Math.floor(x) - 0.5;
+};
 
 // A 7-row brick font, mostly 4 wide. '#' is a stud-wide brick, '.' is empty.
 const GLYPHS: Record<string, string> = {
@@ -79,7 +85,7 @@ function wrap(segments: string[], maxCols: number) {
 }
 
 function brickGeometry(n: number) {
-  const body = new RoundedBoxGeometry(n - 0.04, H - 0.04, 1.96, 2, 0.07);
+  const body = new RoundedBoxGeometry(n - 0.08, H - 0.07, 1.94, 3, 0.09);
   const parts: THREE.BufferGeometry[] = [body];
   for (let i = 0; i < n; i++) {
     for (const z of [-0.5, 0.5]) {
@@ -103,7 +109,7 @@ interface Brick {
 const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
 
 /**
- * A page title spelled in bricks, letters alternating white and yellow; the
+ * A page title spelled in white bricks. The
  * bricks drop in left to right, and a letter hops when the pointer passes it.
  */
 export class BrickTitle {
@@ -141,21 +147,22 @@ export class BrickTitle {
 
     const pmrem = new THREE.PMREMGenerator(this.renderer);
     this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-    this.scene.environmentIntensity = 0.75;
-    const key = new THREE.DirectionalLight('#ffffff', 1.8);
+    this.scene.environmentIntensity = 0.85;
+    const key = new THREE.DirectionalLight('#fff8ec', 1.5);
     key.castShadow = true;
     key.shadow.mapSize.set(2048, 1024);
     key.shadow.bias = -0.0008;
-    key.shadow.radius = 5;
-    this.scene.add(key, key.target, new THREE.HemisphereLight('#ffffff', '#2d5a3c', 0.55));
+    key.shadow.radius = 9;
+    key.shadow.blurSamples = 16;
+    this.scene.add(key, key.target, new THREE.HemisphereLight('#ffffff', '#1f5c35', 0.5));
     this.key = key;
 
     // The letters cast a soft shadow onto an invisible wall just behind them.
-    this.shadowPlane = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.ShadowMaterial({ opacity: 0.16 }));
+    this.shadowPlane = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.ShadowMaterial({ opacity: 0.22, color: '#0b2b16' }));
     this.shadowPlane.receiveShadow = true;
     this.scene.add(this.shadowPlane);
 
-    const mat = new THREE.MeshPhysicalMaterial({ color: '#ffffff', roughness: 0.22, clearcoat: 0.7, clearcoatRoughness: 0.18 });
+    const mat = new THREE.MeshPhysicalMaterial({ color: '#ffffff', roughness: 0.38, clearcoat: 0.35, clearcoatRoughness: 0.35, sheen: 0.2, sheenRoughness: 0.6 });
     for (let n = 1; n <= MAX_LEN; n++) {
       const mesh = new THREE.InstancedMesh(brickGeometry(n), mat, CAPACITY);
       mesh.count = 0;
@@ -251,7 +258,7 @@ export class BrickTitle {
       m.count = counts[i + 1];
     });
     for (const b of this.bricks) {
-      const color = new THREE.Color(PALETTE[b.letter % PALETTE.length]);
+      const color = BRICK.clone().offsetHSL(0, 0, jitter(b.len * 1000 + b.index) * 0.035);
       this.meshes[b.len - 1].setColorAt(b.index, color);
     }
     for (const m of this.meshes) if (m.instanceColor) m.instanceColor.needsUpdate = true;
@@ -271,8 +278,8 @@ export class BrickTitle {
     this.dist = Ht / 2 / Math.tan(vfov / 2) + 1;
 
     this.shadowPlane.scale.set(W * 2, Ht * 3, 1);
-    this.shadowPlane.position.set(this.center.x, this.center.y, -1.6);
-    this.key.position.set(this.center.x - 28, this.center.y + 32, 60);
+    this.shadowPlane.position.set(this.center.x, this.center.y, -2.6);
+    this.key.position.set(this.center.x - 30, this.center.y + 40, 55);
     this.key.target.position.copy(this.center);
     Object.assign(this.key.shadow.camera, { left: -W, right: W, top: Ht * 1.5, bottom: -Ht * 1.5, near: 1, far: 260 });
     this.key.shadow.camera.updateProjectionMatrix();
@@ -281,7 +288,13 @@ export class BrickTitle {
   }
 
   private resize(first = false) {
-    const lines = wrap(this.segments, this.maxCols());
+    // Prefer slightly smaller bricks over stranding a word on its own line.
+    const base = this.maxCols();
+    let lines = wrap(this.segments, base);
+    if (lines.length > this.segments.length) {
+      const roomier = wrap(this.segments, Math.floor(base * 1.3));
+      if (roomier.length < lines.length) lines = roomier;
+    }
     if (first || lines.join('|') !== this.lines.join('|')) {
       this.lines = lines;
       this.build(first);

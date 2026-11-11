@@ -3,51 +3,54 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
-/** Brick height in stud units (a 1x1 brick is 1 wide, 1 deep, H tall). */
+/** Brick height in stud units. Bricks are 2 studs deep, 2 or 4 long. */
 const H = 1.2;
 const ROWS = 7;
-const LINE_GAP = 2.2;
-/** On wide screens every title uses the same brick size (px per stud). */
-const STUD_PX = 12.5;
+/** Each font pixel is a 2-stud-wide, 2-course-tall block of bricks. */
+const PX = 2;
+const LINE_GAP = 4.4;
+/** On wide screens every title uses the same size (screen px per font pixel). */
+const PIXEL_PX = 16;
 const MAX_LEN = 4;
+const CAPACITY = 1024;
 
-/** Bright brick colors that all read against the green ground. */
-const PALETTE = ['#f5c518', '#8fd3ff', '#ffa3c2', '#f7f7f4', '#ffad4d', '#cdb0ff'];
+/** Two colors, alternating by letter: the site's white and its yellow. */
+const PALETTE = ['#f7f7f4', '#f5c518'];
 
-// A 5x7 brick font. '#' is a stud-wide brick, '.' is empty.
+// A 7-row brick font, mostly 4 wide. '#' is a stud-wide brick, '.' is empty.
 const GLYPHS: Record<string, string> = {
-  A: '.###.|#...#|#...#|#####|#...#|#...#|#...#',
-  B: '####.|#...#|#...#|####.|#...#|#...#|####.',
-  C: '.###.|#...#|#....|#....|#....|#...#|.###.',
-  D: '####.|#...#|#...#|#...#|#...#|#...#|####.',
-  E: '#####|#....|#....|####.|#....|#....|#####',
-  F: '#####|#....|#....|####.|#....|#....|#....',
-  G: '.###.|#...#|#....|#.###|#...#|#...#|.###.',
-  H: '#...#|#...#|#...#|#####|#...#|#...#|#...#',
+  A: '.##.|#..#|#..#|####|#..#|#..#|#..#',
+  B: '###.|#..#|#..#|###.|#..#|#..#|###.',
+  C: '.##.|#..#|#...|#...|#...|#..#|.##.',
+  D: '###.|#..#|#..#|#..#|#..#|#..#|###.',
+  E: '####|#...|#...|###.|#...|#...|####',
+  F: '####|#...|#...|###.|#...|#...|#...',
+  G: '.##.|#..#|#...|#.##|#..#|#..#|.###',
+  H: '#..#|#..#|#..#|####|#..#|#..#|#..#',
   I: '###|.#.|.#.|.#.|.#.|.#.|###',
-  J: '..###|...#.|...#.|...#.|...#.|#..#.|.##..',
-  K: '#...#|#..#.|#.#..|##...|#.#..|#..#.|#...#',
-  L: '#....|#....|#....|#....|#....|#....|#####',
+  J: '..##|...#|...#|...#|...#|#..#|.##.',
+  K: '#..#|#..#|#.#.|##..|#.#.|#..#|#..#',
+  L: '#...|#...|#...|#...|#...|#...|####',
   M: '#...#|##.##|#.#.#|#.#.#|#...#|#...#|#...#',
   N: '#...#|#...#|##..#|#.#.#|#..##|#...#|#...#',
-  O: '.###.|#...#|#...#|#...#|#...#|#...#|.###.',
-  P: '####.|#...#|#...#|####.|#....|#....|#....',
-  Q: '.###.|#...#|#...#|#...#|#.#.#|#..#.|.##.#',
-  R: '####.|#...#|#...#|####.|#.#..|#..#.|#...#',
-  S: '.####|#....|#....|.###.|....#|....#|####.',
+  O: '.##.|#..#|#..#|#..#|#..#|#..#|.##.',
+  P: '###.|#..#|#..#|###.|#...|#...|#...',
+  Q: '.##.|#..#|#..#|#..#|#..#|#.#.|.#.#',
+  R: '###.|#..#|#..#|###.|#.#.|#..#|#..#',
+  S: '.###|#...|#...|.##.|...#|...#|###.',
   T: '#####|..#..|..#..|..#..|..#..|..#..|..#..',
-  U: '#...#|#...#|#...#|#...#|#...#|#...#|.###.',
+  U: '#..#|#..#|#..#|#..#|#..#|#..#|.##.',
   V: '#...#|#...#|#...#|#...#|#...#|.#.#.|..#..',
   W: '#...#|#...#|#...#|#.#.#|#.#.#|#.#.#|.#.#.',
   X: '#...#|#...#|.#.#.|..#..|.#.#.|#...#|#...#',
   Y: '#...#|#...#|.#.#.|..#..|..#..|..#..|..#..',
-  Z: '#####|....#|...#.|..#..|.#...|#....|#####',
+  Z: '####|...#|..#.|.##.|.#..|#...|####',
   "'": '#|#|.|.|.|.|.',
-  '?': '.###.|#...#|....#|...#.|..#..|.....|..#..',
+  '?': '.##.|#..#|...#|..#.|.#..|....|.#..',
   '.': '.|.|.|.|.|.|#',
   ',': '.|.|.|.|.|#|#',
   '!': '#|#|#|#|#|.|#',
-  '-': '....|....|....|####|....|....|....',
+  '-': '...|...|...|###|...|...|...',
 };
 const SPACE = 2;
 
@@ -76,12 +79,14 @@ function wrap(segments: string[], maxCols: number) {
 }
 
 function brickGeometry(n: number) {
-  const body = new RoundedBoxGeometry(n - 0.04, H - 0.04, 0.96, 2, 0.06);
+  const body = new RoundedBoxGeometry(n - 0.04, H - 0.04, 1.96, 2, 0.07);
   const parts: THREE.BufferGeometry[] = [body];
   for (let i = 0; i < n; i++) {
-    const s = new THREE.CylinderGeometry(0.3, 0.3, 0.18, 18);
-    s.translate(i - (n - 1) / 2, H / 2 + 0.08, 0);
-    parts.push(s);
+    for (const z of [-0.5, 0.5]) {
+      const s = new THREE.CylinderGeometry(0.3, 0.3, 0.18, 18);
+      s.translate(i - (n - 1) / 2, H / 2 + 0.08, z);
+      parts.push(s);
+    }
   }
   return mergeGeometries(parts.map((g) => (g.index ? g.toNonIndexed() : g)));
 }
@@ -98,7 +103,7 @@ interface Brick {
 const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
 
 /**
- * A page title spelled in bricks. Each letter is a different color; the
+ * A page title spelled in bricks, letters alternating white and yellow; the
  * bricks drop in left to right, and a letter hops when the pointer passes it.
  */
 export class BrickTitle {
@@ -152,7 +157,7 @@ export class BrickTitle {
 
     const mat = new THREE.MeshPhysicalMaterial({ color: '#ffffff', roughness: 0.22, clearcoat: 0.7, clearcoatRoughness: 0.18 });
     for (let n = 1; n <= MAX_LEN; n++) {
-      const mesh = new THREE.InstancedMesh(brickGeometry(n), mat, 256);
+      const mesh = new THREE.InstancedMesh(brickGeometry(n), mat, CAPACITY);
       mesh.count = 0;
       mesh.castShadow = true;
       mesh.frustumCulled = false;
@@ -179,19 +184,20 @@ export class BrickTitle {
   /** Columns that fit the space at a readable brick size. */
   private maxCols() {
     const w = this.canvas.parentElement!.clientWidth;
-    return Math.max(30, Math.floor(w / (w >= 720 ? STUD_PX : 6)));
+    return Math.max(24, Math.floor(w / (w >= 720 ? PIXEL_PX : 7)));
   }
 
   private build(animate: boolean) {
     this.bricks = [];
     this.letters = [];
     const counts = new Array(MAX_LEN + 1).fill(0);
-    const lineH = ROWS * H + LINE_GAP;
+    const courses = ROWS * PX;
+    const lineH = courses * H + LINE_GAP;
     let letter = 0;
     let maxW = 0;
 
     this.lines.forEach((line, li) => {
-      let cx = 0;
+      let cx = 0; // in font pixels
       const top = -li * lineH;
       for (const ch of line) {
         if (ch === ' ') {
@@ -201,36 +207,44 @@ export class BrickTitle {
         const rows = GLYPHS[ch].split('|');
         const w = rows[0].length;
         rows.forEach((row, r) => {
-          const y = top - r * H;
-          // Merge each run of studs into the fewest bricks (up to MAX_LEN long).
-          let c = 0;
-          while (c < w) {
-            if (row[c] !== '#') {
-              c++;
-              continue;
-            }
-            let run = 0;
-            while (c + run < w && row[c + run] === '#') run++;
-            while (run > 0) {
-              const len = Math.min(MAX_LEN, run);
-              this.bricks.push({ len, index: counts[len]++, x: cx + c + len / 2, y, letter, delay: 0 });
-              c += len;
-              run -= len;
+          for (let k = 0; k < PX; k++) {
+            const course = r * PX + k;
+            const y = top - course * H;
+            let c = 0;
+            while (c < w) {
+              if (row[c] !== '#') {
+                c++;
+                continue;
+              }
+              let run = 0;
+              while (c + run < w && row[c + run] === '#') run++;
+              // Lay the run as 4s and 2s, offset course to course like a real wall.
+              let studs = run * PX;
+              let x = (cx + c) * PX;
+              let first = course % 2 === 1 && studs > 2;
+              while (studs > 0) {
+                const len = first ? 2 : Math.min(MAX_LEN, studs);
+                first = false;
+                this.bricks.push({ len, index: counts[len]++, x: x + len / 2, y, letter, delay: 0 });
+                x += len;
+                studs -= len;
+              }
+              c += run;
             }
           }
         });
-        this.letters.push({ x0: cx, x1: cx + w, y0: top - (ROWS - 0.5) * H, y1: top + H / 2, hop: -10 });
+        this.letters.push({ x0: cx * PX, x1: (cx + w) * PX, y0: top - (courses - 0.5) * H, y1: top + H / 2, hop: -10 });
         cx += w + 1;
         letter++;
       }
-      maxW = Math.max(maxW, cx - 1);
+      maxW = Math.max(maxW, (cx - 1) * PX);
     });
 
     // Build order: letter by letter, bottom row first.
     const total = Math.max(1, letter);
     for (const b of this.bricks) {
       const letterT = (b.letter / total) * Math.min(1.2, total * 0.08);
-      const rowT = ((this.letters[b.letter].y1 - b.y) / (ROWS * H)) * -0.12 + 0.12;
+      const rowT = ((this.letters[b.letter].y1 - b.y) / (courses * H)) * -0.14 + 0.14;
       b.delay = letterT + rowT;
     }
     this.meshes.forEach((m, i) => {
@@ -244,23 +258,23 @@ export class BrickTitle {
 
     // Frame the title: the canvas takes the title's shape.
     const height = this.lines.length * lineH - LINE_GAP;
-    const padX = 1.2;
-    const padTop = 1.0;
-    const padBottom = 1.4;
+    const padX = 2;
+    const padTop = 1.8;
+    const padBottom = 2.6;
     const W = maxW + padX * 2;
     const Ht = height + padTop + padBottom;
     this.center.set(maxW / 2, H / 2 + padTop - Ht / 2, 0);
     this.canvas.style.aspectRatio = `${W} / ${Ht}`;
-    this.canvas.style.maxWidth = `${Math.round(W * STUD_PX)}px`;
+    this.canvas.style.maxWidth = `${Math.round((W / PX) * PIXEL_PX)}px`;
     this.camera.aspect = W / Ht;
     const vfov = THREE.MathUtils.degToRad(this.camera.fov);
-    this.dist = Ht / 2 / Math.tan(vfov / 2) + 0.5;
+    this.dist = Ht / 2 / Math.tan(vfov / 2) + 1;
 
     this.shadowPlane.scale.set(W * 2, Ht * 3, 1);
-    this.shadowPlane.position.set(this.center.x, this.center.y, -0.9);
-    this.key.position.set(this.center.x - 14, this.center.y + 16, 30);
+    this.shadowPlane.position.set(this.center.x, this.center.y, -1.6);
+    this.key.position.set(this.center.x - 28, this.center.y + 32, 60);
     this.key.target.position.copy(this.center);
-    Object.assign(this.key.shadow.camera, { left: -W, right: W, top: Ht * 1.5, bottom: -Ht * 1.5, near: 1, far: 120 });
+    Object.assign(this.key.shadow.camera, { left: -W, right: W, top: Ht * 1.5, bottom: -Ht * 1.5, near: 1, far: 260 });
     this.key.shadow.camera.updateProjectionMatrix();
 
     this.t0 = animate && !this.reduced ? this.clock.getElapsedTime() : -100;
@@ -287,7 +301,7 @@ export class BrickTitle {
     this.ray.setFromCamera(ndc, this.camera);
     const hit = new THREE.Vector3();
     if (!this.ray.ray.intersectPlane(this.plane, hit)) return;
-    const i = this.letters.findIndex((l) => hit.x >= l.x0 - 0.5 && hit.x <= l.x1 + 0.5 && hit.y >= l.y0 && hit.y <= l.y1);
+    const i = this.letters.findIndex((l) => hit.x >= l.x0 - 1 && hit.x <= l.x1 + 1 && hit.y >= l.y0 && hit.y <= l.y1);
     if (i !== this.hovered) {
       this.hovered = i;
       const now = this.clock.getElapsedTime();
@@ -318,9 +332,9 @@ export class BrickTitle {
       const k = THREE.MathUtils.clamp((t - b.delay) / 0.42, 0, 1);
       const e = easeOut(k);
       const hopT = (now - this.letters[b.letter].hop) / 0.42;
-      const hop = hopT >= 0 && hopT <= 1 ? Math.sin(hopT * Math.PI) * 0.9 : 0;
-      this.dummy.position.set(b.x, b.y + 7 * (1 - e) + hop, 0);
-      this.dummy.rotation.set(0, 0, hop * 0.06);
+      const hop = hopT >= 0 && hopT <= 1 ? Math.sin(hopT * Math.PI) * 1.8 : 0;
+      this.dummy.position.set(b.x, b.y + 12 * (1 - e) + hop, 0);
+      this.dummy.rotation.set(0, 0, hop * 0.03);
       this.dummy.scale.setScalar(k <= 0 ? 0.0001 : 1);
       this.dummy.updateMatrix();
       this.meshes[b.len - 1].setMatrixAt(b.index, this.dummy.matrix);

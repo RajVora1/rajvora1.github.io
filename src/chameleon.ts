@@ -48,7 +48,12 @@ export class Chameleon {
   private mouthLocal = new THREE.Vector3(-4.75, -0.35, 0);
   private target: THREE.Vector3 | null = null;
   private lookPoint = new THREE.Vector3(-20, 4, 6);
+  /** Where the tongue is actually pointed; lags `target` while switching words. */
+  private aimPoint = new THREE.Vector3();
+  private engaged = false;
+  private switching = false;
   private ext = 0;
+  private vel = 0;
   private extGoal = 0;
   private clock = new THREE.Clock();
   private last = 0;
@@ -201,21 +206,51 @@ export class Chameleon {
   /** Point the tongue at a screen position (client px), or retract it with null. */
   aim(screen: { x: number; y: number } | null) {
     if (!screen) {
+      this.engaged = false;
+      this.switching = false;
       this.extGoal = 0;
       this.fireAt = Infinity;
       return;
     }
-    const was = this.extGoal > 0;
-    this.target = this.screenToWorld(screen.x, screen.y);
+    const next = this.screenToWorld(screen.x, screen.y);
+    this.target = next;
+    this.engaged = true;
     if (this.reducedMotion) return;
-    this.extGoal = 0.0001;
-    this.fireAt = this.clock.getElapsedTime() + (was ? 0.04 : 0.09);
+    if (this.ext < 0.05) {
+      // Tongue is in: aim, and fire once the head has started to turn.
+      this.aimPoint.copy(next);
+      this.switching = false;
+      if (this.extGoal === 0 && this.fireAt === Infinity) this.fireAt = this.clock.getElapsedTime() + 0.09;
+    } else if (this.aimPoint.distanceTo(next) < 0.6) {
+      // Same word (a resize nudged it): just follow.
+      this.aimPoint.copy(next);
+    } else {
+      // Out at another word: reel in first, then fire at the new one.
+      this.switching = true;
+      this.extGoal = 0;
+      this.fireAt = Infinity;
+    }
+  }
+
+  /** Resolves once the tongue is stuck to the current word (or soon, as a fallback). */
+  attached(): Promise<void> {
+    if (this.reducedMotion) return Promise.resolve();
+    const start = performance.now();
+    return new Promise((resolve) => {
+      const check = () => {
+        const on = this.engaged && !this.switching && this.extGoal === 1 && Math.abs(this.ext - 1) < 0.04 && Math.abs(this.vel) < 1.5;
+        if (on || performance.now() - start > 700) resolve();
+        else requestAnimationFrame(check);
+      };
+      check();
+    });
   }
 
   /** Grab: the tongue retracts and the chameleon gulps. Resolves when done. */
   grab(): Promise<void> {
     if (this.reducedMotion) return Promise.resolve();
     this.fireAt = Infinity;
+    this.switching = false;
     this.extGoal = 0;
     this.gulp = 1;
     return new Promise((r) => setTimeout(r, 260));
@@ -287,7 +322,7 @@ export class Chameleon {
 
     // Head and eyes follow the target, or idly look around.
     const idle = new THREE.Vector3(-20 + Math.sin(now * 0.4) * 4, 4 + Math.sin(now * 0.7) * 3, 6);
-    const goal = this.target && this.extGoal > 0 ? this.target : idle;
+    const goal = this.target && this.engaged ? this.target : idle;
     this.lookPoint.lerp(goal, this.reducedMotion ? 1 : 1 - Math.pow(0.0005, dt));
     const neck = this.head.getWorldPosition(new THREE.Vector3());
     const dx = this.lookPoint.x - neck.x;
@@ -305,18 +340,42 @@ export class Chameleon {
       this.extGoal = 1;
       this.fireAt = Infinity;
     }
-    // Tongue: fast out with a little overshoot, slower back.
-    if (this.extGoal > this.ext) this.ext = Math.min(this.extGoal, this.ext + dt / 0.14);
-    else this.ext = Math.max(0, this.ext - dt / 0.22);
-    const e = this.extGoal > 0 ? 1 + 2.2 * Math.pow(this.ext - 1, 3) + 1.2 * Math.pow(this.ext - 1, 2) : this.ext * this.ext;
-    if (this.target && this.ext > 0.001) {
+    if (this.switching && this.ext < 0.05) {
+      // Reeled in from the old word: swing to the new one and fire.
+      this.switching = false;
+      this.aimPoint.copy(this.target!);
+      this.extGoal = 1;
+    }
+
+    // Tongue length rides a spring: a quick shot with a small overshoot that
+    // settles on the word, and a firm, overshoot-free reel back in.
+    const out = this.extGoal > 0;
+    const w = out ? 26 : 34; // natural frequency (rad/s)
+    const zeta = out ? 0.62 : 1.0;
+    const steps = Math.max(1, Math.ceil(dt / (1 / 240)));
+    const h = dt / steps;
+    for (let i = 0; i < steps; i++) {
+      const acc = -w * w * (this.ext - this.extGoal) - 2 * zeta * w * this.vel;
+      this.vel += acc * h;
+      this.ext += this.vel * h;
+    }
+    if (!out && this.ext < 0.01) {
+      this.ext = 0;
+      this.vel = 0;
+    }
+    if (this.ext < 0) {
+      this.ext = 0;
+      this.vel = Math.max(0, this.vel);
+    }
+
+    if (this.ext > 0.001) {
       const mouth = this.head.localToWorld(this.mouthLocal.clone());
-      const dir = this.target.clone().sub(mouth);
+      const dir = this.aimPoint.clone().sub(mouth);
       const len = dir.length();
       this.tongue.visible = true;
       this.tongue.position.copy(mouth);
       this.tongue.quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), dir.normalize());
-      const L = Math.max(0.01, len * e);
+      const L = Math.max(0.01, len * this.ext);
       this.tongueShaft.scale.set(L, 1, 1);
       this.tongueTip.position.set(L, 0, 0);
     } else {

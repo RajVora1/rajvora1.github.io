@@ -12,7 +12,6 @@ type ChameleonT = import('./chameleon').Chameleon;
 let chameleon: ChameleonT | null = null;
 let active: HTMLAnchorElement | null = null;
 let leaving = false;
-let aimedAt = 0;
 
 /** Where the tongue lands: just past the end of the word. */
 function anchorPoint(a: HTMLAnchorElement) {
@@ -28,7 +27,6 @@ function point(a: HTMLAnchorElement | null) {
   for (const l of links) l.classList.toggle('is-active', l === a);
   root.classList.toggle('has-active', !!a);
   chameleon?.aim(target);
-  aimedAt = performance.now();
 }
 
 async function fetchSection(a: HTMLAnchorElement) {
@@ -37,8 +35,7 @@ async function fetchSection(a: HTMLAnchorElement) {
 
   if (chameleon && !reduced) {
     // Let the tongue reach the word first (taps and Enter can arrive before it does).
-    const wait = 280 - (performance.now() - aimedAt);
-    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+    await chameleon.attached();
 
     // The word rides the tongue tip back to the mouth, frame by frame.
     const word = a.querySelector<HTMLElement>('.menu-word')!;
@@ -97,6 +94,7 @@ window.addEventListener('pageshow', (e) => {
     const { Chameleon } = await import('./chameleon');
     chameleon = new Chameleon(canvas, reduced);
     chameleon.setColor(GROUND, true);
+    if (import.meta.env.DEV) (window as unknown as { __cham: unknown }).__cham = chameleon;
   } catch (err) {
     console.warn('WebGL unavailable; the menu works without the chameleon.', err);
     root.classList.add('no-webgl');
